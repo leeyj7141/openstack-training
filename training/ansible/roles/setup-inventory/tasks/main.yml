@@ -1,0 +1,6 @@
+---
+# tasks file for setup-inventory
+- name: Create ansible inventory 
+  template: 
+    src: ansible_hosts.j2
+    dest: "{{ playbook_dir }}/../ansible-hosts"

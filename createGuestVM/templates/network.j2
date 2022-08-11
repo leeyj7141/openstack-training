@@ -1,0 +1,14 @@
+<network>
+  <name>{{ network_name }}</name>
+  <uuid>{{ uuid1 }}</uuid>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='virbr{{ bridge_number.stdout }}' stp='on' delay='0'/>
+  <mac address='{{ mac_address1.stdout }}'/>
+  <ip address='{{ network_gateway }}' netmask='255.255.255.0'>
+  </ip>
+</network>
+

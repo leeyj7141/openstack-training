@@ -1,0 +1,6 @@
+---
+- name: Ceph client installation
+  hosts: deploy
+  tasks:
+    - import_role: 
+        name: ceph-client-installation

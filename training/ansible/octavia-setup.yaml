@@ -1,0 +1,16 @@
+---
+- name: Setup octavia 
+  hosts: deploy
+  gather_facts: no
+  vars:
+   - ansible_python_interpreter: /home/openstack-cli-env/bin/python
+  tasks:
+    - import_role: 
+        name: octavia-setup
+
+- name: Add controller static route
+  hosts: con
+  gather_facts: no
+  tasks:
+    - import_role: 
+        name: add-controller-route

@@ -1,0 +1,21 @@
+---
+# tasks file for setup-virtualenv
+- name: Wait for automatic system updates
+  become: true
+  shell: while sudo fuser /var/lib/dpkg/{{ item }} >/dev/null 2>&1; do sleep 1; done;
+  with_items:
+    - lock
+    - lock-frontend
+
+- name: Install venv packages
+  package: 
+   name: 
+     - python3-venv 
+
+- name: Setup virtualenv 
+  shell: 
+    cmd: "python3 -m venv /home/{{ item }}"
+  loop:
+   - kolla-env
+   - ceph-env
+   - openstack-cli-env

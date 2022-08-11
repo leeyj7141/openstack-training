@@ -1,0 +1,7 @@
+---
+- name: Setup inventory file
+  hosts: localhost
+  gather_facts: yes
+  tasks:
+    - import_role: 
+        name: setup-inventory

@@ -1,0 +1,21 @@
+clouds:
+  cloud1:
+    auth:
+      auth_url: http://{{ kolla_external_vip_address }}:5000/v3
+      project_name: admin
+      username: admin
+      password: {{ keystone_admin_password }}
+      domain_name: Default
+    region_name: RegionOne
+    user_domain_name: Default
+    interface: public
+  cloud1-octavia:
+    auth:
+      auth_url: http://{{ kolla_external_vip_address }}:5000/v3
+      project_name: service
+      username: octavia
+      password: {{ octavia_keystone_password }}
+      domain_name: Default
+    region_name: RegionOne
+    user_domain_name: Default
+    interface: public

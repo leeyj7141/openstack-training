@@ -1,0 +1,6 @@
+---
+- name: Openstack client setup
+  hosts: deploy
+  tasks:
+    - import_role: 
+        name: openstack-client-installation

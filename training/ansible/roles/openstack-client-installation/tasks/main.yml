@@ -1,0 +1,29 @@
+---
+# tasks file for openstack-client-installation
+- name: openstack client install 
+  pip: 
+    name: 
+      - python-openstackclient==5.6.0
+      - python-barbicanclient==5.2.0    
+      - python-cinderclient==8.3.0    
+      - python-designateclient==4.3.0    
+      - python-keystoneclient==4.4.0    
+      - python-neutronclient==7.8.0    
+      - python-novaclient==17.7.0   
+      - python-octaviaclient==2.4.0    
+      - python-ironicclient==4.8.1
+      - python-manilaclient==3.0.2
+      - python-masakariclient==7.1.0
+    virtualenv: /home/openstack-cli-env/
+
+- name: Add openstack client alias 
+  lineinfile: 
+    path: /root/.bashrc
+    state: present
+    line: "alias openstack='/home/openstack-cli-env/bin/openstack'"
+
+- name: Add openstack environment
+  lineinfile: 
+    path: /root/.bashrc
+    state: present
+    line: "source /etc/kolla/admin-openrc.sh"

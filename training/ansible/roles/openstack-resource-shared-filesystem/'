@@ -1,0 +1,120 @@
+---
+# tasks file for openstack-resource-shared-filesystem
+- name: Create cephfs type 
+  shell: "/home/openstack-cli-env/bin/openstack share type create cephfs false --os-cloud cloud1 --extra-specs vendor_name=Ceph   storage_protocol=CEPHFS  share_backend_name=CEPHFS1"
+  ignore_errors: true
+   
+- name: Check cephfs share exists
+  shell: "/home/openstack-cli-env/bin/openstack share list --os-cloud cloud1 -f value -c Name |grep -i '^cephfs1$'"
+  register: check_share
+
+- name: Create cephfs shared filesystem
+  shell: "/home/openstack-cli-env/bin/openstack share create --os-cloud cloud1 --share-type cephfs --name cephfs1 cephfs 1" 
+  when:
+   - check_share.rc != 0
+
+- name: Create shared filesystem access 
+  shell: "/home/openstack-cli-env/bin/openstack share access create --os-cloud cloud1 cephfs1 cephx training" 
+  when:
+   - check_share.rc != 0
+
+- name: Get cephfs access keyring 
+  shell: "/home/openstack-cli-env/bin/openstack share access list --os-cloud cloud1 cephfs1 -f value -c access_key" 
+  when:
+   - check_share.rc != 0
+  register: access_keyring
+
+- name: Include globals.yml
+  include_vars:  "{{ playbook_dir }}/../kolla-ansible-config/{{ groups['deploy'][0] }}/etc/kolla/globals.yml"
+
+- name: Get controller node fact
+  setup:
+  delegate_facts: true
+  delegate_to: "{{ groups['con'][0] }}"
+  register: get_fact
+
+#- name: Set storage network split
+#  debug: 
+#    #msg: "get_fact.ansible_facts.ansible_{{storage_interface}}.ipv4"
+#    #var: "get_fact.ansible_facts.ansible_{{ storage_interface }}.ipv4"
+#  register: storage_network
+
+- name: Set storage network variable 
+  set_fact: 
+    stg_net: "get_fact.ansible_facts.ansible_{{ storage_interface }}.ipv4.network"
+    stg_net_mask: "get_fact.ansible_facts.ansible_{{ storage_interface }}.ipv4.netmask"
+    stg_net_split: "get_fact.ansible_facts.ansible_{{ storage_interface }}.ipv4.network.split('.')"
+
+- debug: 
+    var: "{{ stg_net }}"
+
+#- name: Set storage network split
+#  debug: 
+#    msg: "{{ stg_net }}.network.split('.')"
+#  register: storage_network_split
+
+- name: Create storage network 
+  os_network:
+    cloud: cloud1
+    state: present
+    name: storage1
+    external: false
+    provider_network_type: flat
+    provider_physical_network: physnet2
+    mtu: 1500
+
+- set_fact:
+    stg_mask_cidr: "{{ ip | ipaddr('prefix') }}"
+  vars:
+    ip: "{{ get_fact.ansible_facts.ansible_vars['storage_interface'].ipv4.network }}/{{ get_fact.ansible_facts.ansible_{{ storage_interface }}.ipv4.netmask }}"
+
+- name: debug 
+  debug: 
+#    msg: "{{ storage_network }}/24 ,  "
+     #msg: "test msg {{ (stg_net + '/' + stg_net_mask) | ipaddr('network/prefix') }}"
+     #msg: "{{ var[stg_net] }},  {{ var[stg_net_mask] }}"
+     msg: "{{ stg_mask_cidr }}"
+
+
+#- name: Create storage network subnet
+#  os_subnet:
+#    cloud: cloud1
+#    name: storage1_sub
+#    network_name: storage1
+#    #cidr: "{{ storage_network.network }}/24"
+#    cidr: "{{ (storage_network.network + '/' + storage_network.netmask) | ipaddr('network/prefix') }}"
+#    enable_dhcp: yes
+#    allocation_pool_start: "{{ storage_network_split.msg[0] }}.{{ storage_network_split.msg[1] }}.{{ storage_network_split.msg[2] }}.150"
+#    allocation_pool_end: "{{ storage_network_split.msg[0] }}.{{ storage_network_split.msg[1] }}.{{ storage_network_split.msg[2] }}.200"
+#
+#- name: Add storage subnet to router
+#  openstack.cloud.router:
+#    cloud: cloud1
+#    state: present
+#    name: router1
+#    interfaces:
+#      - net: storage1
+#        subnet: storage1_sub
+#
+#- name: Get instance info
+#  shell: "/home/openstack-cli-env/bin/openstack server show training-instance1  -f yaml -c addresses --os-cloud cloud1 "
+#  register: instance_result
+#
+#- name: Add host
+#  add_host:
+#    hostname: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+#    ansible_ssh_user: ubuntu
+#    ansible_ssh_private_key_file: ~/.ssh/id_rsa_training
+#    ansible_python_interpreter: "/usr/bin/python3"
+#    ansible_become: yes
+#
+##- name: Mount shared filesystem to training instance 
+##  mount:
+##    fstype: ext4
+##    src: /dev/vdb1
+##    path: /mnt
+##    state: mounted
+##  delegate_to: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+#
+#
+#

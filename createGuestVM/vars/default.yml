@@ -1,0 +1,57 @@
+---
+# KVM Hypervisor info
+host: 127.0.0.1
+virt_type: kvm
+virt_hypervisor: hvm
+
+# Default network config for intance
+network:
+    bridge: br0
+    interface: eth0
+    netmask: 255.255.255.0
+
+# for default user(centos for CentOS, cloud-user for RHEL)
+userpassword: root123
+rootpassword: root123
+
+os:
+    type: linux
+    variant: rhel7.0
+
+disk:
+    cloud_init: cloud-init.iso
+
+ssh_private_key: |
+  -----BEGIN RSA PRIVATE KEY-----
+  MIIEpAIBAAKCAQEApcjvY8yegoD+cYWDi1vnYcNUoGoprM87R5zcxlDmb7NSDRBs
+  A6JhplIkFxkl2TqXW2xa5FJ9aTj618iJafMppG3bpEiPpr5n9P7eVAF+j4YFUO7N
+  O5W++DtMmxDl/i34E/j+5qaC6IwNIIkXlV2AEj/Q0QzrOOAH+oTVkuwEEu8697CT
+  EO4m9gl3V+m3DiPBrXn0uqX6BIhzqfxVcFr7zR8FPdD5Uf3VGQHrXT252cYV2V3t
+  gpamhZWKAQ3/sTNwIn1dH+ogGt6d25WwUw526uYUHe5xo4l++q0JTDoMDcKTQfyg
+  4bNJkkGazYB9VbmZXbFzJPGxd4FtfjMDgOLZGQIDAQABAoIBAQCb0XDW7zIoXM9J
+  qYCK0hV2eJ2orD+BUcFYvKFwsAb2A6fh6YZsIAoBxgBvyU4ejwhFgGEpajK/XDO/
+  7pbhAxAnoK2pCh4iTaHtzkLu1/y5LvD+MYSqNUOpkiqdMFPLBC+/re7+oJA3u7J2
+  2wNUeu3tuRct9SN8cGxvVLxb/AKUO8xEePZj1OEBqlKZgEzoCzECS+cV3qnwe79U
+  MP2XEPIHN6hp3G7PuFmKkj45SI7OWw93iYBiLf5WDkMcWlTYqaF4IJvnaYLN/TyX
+  KRELbhjJS5W445roOmTfuATphgVsYSfwyrg2M07BB56nY8J/gEXWqJxgHk0yJB7k
+  hanYECxVAoGBANVYo2SYkmS578LKima4YyjcEh9ObeBEibt2yCxqgvuTvmUU/y6x
+  OxVBUTzNh9/pqvcizxSVc4DpKLk1CQM2Ap5Jm05x49ON1gT6WivCAN9UP3d47ICX
+  3jCGgd7VLGIofv65b7m10+HlbzCA+g3fQP+e/4bnaFxsxewMyw3teh2zAoGBAMbu
+  ClS/ibVqTlP6mhlx03YFg7TqQrdGqAeClkohMUW5mvHejCRF9GE6//Jk6HvrkW5O
+  px53c/8a5S2dk/Y0ort0lshr9mfIjVnzkxW7KVyohCEM0fLKtGqE44rHeBAVMGlD
+  2BPbhpx569juzwif3cQA/Yq8itw9jR+/j/jgeYADAoGAfEebPwGF3flWivFzuCzX
+  TrkMMYJ9jTQ/y52BNCaD0MubEMUvdeK2WUZobXQJH8290yNK4GHDHCg2mdUkP+OZ
+  mN2mBAdiQR2Ru+qe1ni4C2DHa/BcTPiq7TedtdIWfcO7XuVlCRi7qg7+O5IWmDgi
+  ZAYaMlrhN14B2eUF8EITbfMCgYA5utz+qTNClZ4zmtdbqP/QEVuehhlkbLnYrBoH
+  W0icTnfb11TeNfrsuJ2Mb6JUTBHBbEvteIcOMnTt3vwQiEftlLEpasNwbPAweZJm
+  zRD81d66ZKkNB6yB+Ry7qpV6PVv2QH0VjjCrempqYytr+lD2T79EouC9d5Nb8lDK
+  zgIUlwKBgQDMwjBhsRKidTnFVWDPEXaof7SRm5glgb4okZFux8ZKevyjQpzG5tX6
+  UToO5urGM55enXh5tsfn4Vz6N09Akt5ojDq2YDvnej0sUzaYkF4ZumIFcyIGu5EH
+  TBFIr+3j6JxyBRUUcMq88VzilJoAstH69wejWp0CxmJ54/8i2eYRQQ==
+  -----END RSA PRIVATE KEY-----
+
+# Default ssh key
+ssh_key1: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD2wgI9na26l99n/Hk3S1cnYkI5W5H4k3v39TvHxpxlv60Xp5mtrEhSlbS5pjgvG574dGV+mfdi3d4cA/59KFjiRawkrBP3K93hIvunFHt0U3QBgRgexZd/ApE7Pe3aE7TVPWs8liCzPTEjm9ZaqgxS0ZaZlTTHMFxNowKPKSQ32tslwPHbnm7QqmRgjZQdS0D9LFpRIpDz2hzBvRLc/HGMHzQ7R+zwcUKc7lx4I+9A9NRhnOKpRV1C52Avk2/eFcisLJfywDTZj0l2j8iRUUDAY4OW2xs/zHrsxK2fJ2CBrPXZ1XV8Zkqc1FBRgkK313Bp3HxYY/vJ1xk7sk4C+HoF krd@free.style.ted 
+ssh_key2: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFG4h+0Gcj0WWd4pMl15V6+JabwIEUYFwGx5kZThaDn6oSXSUvkG3cXT/CfeAETiI7q6Ohmt0OHPphaYzZHtPJ8NX2p5U9PK3pMKa43wNaURkCnJ2mgBjc4f7fIJ3n+dgqqXdnXtSrnF0YeH7UVvDCAAZRgK2CYbWIU73hz8Cnl/RwiRGjHMA/Tp/PuyHuvb8ZG0KFQcZCGq1jesgldhty2EUoPI6wCtMl2rsTz0yu3WBuGI4t5lb8TYRyQACb2+8k7IewZsaMKaCpi45Svrz9CuuLEpIG1ae8BP3BtspAXXmPXNTAIsF/lVZqz+eL1EGC6O6RsAYC8WZS9ryV7AXp root@kvm2.test.dom
+ssh_key3: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQClyO9jzJ6CgP5xhYOLW+dhw1SgaimszztHnNzGUOZvs1INEGwDomGmUiQXGSXZOpdbbFrkUn1pOPrXyIlp8ymkbdukSI+mvmf0/t5UAX6PhgVQ7s07lb74O0ybEOX+LfgT+P7mpoLojA0giReVXYASP9DRDOs44Af6hNWS7AQS7zr3sJMQ7ib2CXdX6bcOI8GtefS6pfoEiHOp/FVwWvvNHwU90PlR/dUZAetdPbnZxhXZXe2ClqaFlYoBDf+xM3AifV0f6iAa3p3blbBTDnbq5hQd7nGjiX76rQlMOgwNwpNB/KDhs0mSQZrNgH1VuZldsXMk8bF3gW1+MwOA4tkZ user@yjlee-kvm
+ssh_key4: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDNQP+rSMFw/cU8CoNtaiukDJiA2nPyAg44msDxefXI/cIMTIln2W2E9L5E0cs7DaSDnSObm7B/J+adAEYEoJaRCJISsj8oN+CHNbGemloI2+ikk85jf5YTeTnYLzwSfvXLoCB0VMNiH7zJ12dmeDRKv2iFXQ2p5CRQ8AlhXzqTDwzZsCjNEfMMf8v8s3QlSrLCHShYulfzyDb5LMseVQuwGvuLcP3lQX8OAISERVW9EQaYMubVEcp9rMg6aoFt8HOh8MczgDUAY4IeZlPkk4baKHgXYVjBh8TLUisvzp0RQEkfuYph+vZ8CNAkzKoR3ZlE9auxSRizqOvMZhx6o9FFpd9pcORjamngn01DBeEhuzU+PbcHTUjSOiAOfeHHGsC3yabaAr6jeqhWo2oIRPN4ZRjryEhJ6CymSgLauyzv0JZaa6g+94XM9iuIX0xvjgXw7JYG7NHbWffeK0SfcDnL8sX4SYl6MFCwvS8Jm/DIpHvWiYkSl+8ttE8ZfQW7fWE= root@kms-training

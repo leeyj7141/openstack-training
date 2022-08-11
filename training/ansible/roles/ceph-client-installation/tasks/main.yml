@@ -1,0 +1,42 @@
+---
+# tasks file for ceph-client-installation
+- name: Wait for automatic system updates
+  become: true
+  shell: while sudo fuser /var/lib/dpkg/{{ item }} >/dev/null 2>&1; do sleep 1; done;
+  with_items:
+    - lock
+    - lock-frontend
+
+- name: Reinstall ca certificate 
+  shell: "apt-get install --reinstall ca-certificates"
+
+- name:  Apt key installation
+  shell: "apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E84AC2C0460F3994"
+
+- name: Add ceph pacific repository 
+  shell: "apt-add-repository 'deb https://download.ceph.com/debian-pacific/ focal main'"
+
+- name: Install ceph client 
+  package: 
+    name: 
+      - ceph-common 
+
+- name: Copy ceph configurations 
+  synchronize:
+    src: /etc/ceph/
+    dest: /etc/ceph/
+  delegate_to: "{{ groups['mons'][0] }}"
+
+- name: Copy create ceph manila user script
+  copy: 
+    src: create-manila-user.sh
+    dest: /etc/ceph/
+    mode: 0777
+
+- name: Excute create ceph manila user script
+  shell:  /etc/ceph/create-manila-user.sh
+  args: 
+    executable: /bin/bash
+
+- name: Clear warning messages
+  shell: "ceph config set mon auth_allow_insecure_global_id_reclaim false"

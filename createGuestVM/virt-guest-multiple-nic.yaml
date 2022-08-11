@@ -1,0 +1,386 @@
+---
+- name: create directory and network bridge create 
+  user: root
+  hosts: node
+  gather_facts: no
+  vars:
+      - uuid1: "{{ 9999999999999999999999 | random | to_uuid  }}" 
+  vars_files:
+      - vars/default.yml
+      - vars/guest.yml
+  tasks:
+      - name: start libvirtd
+        service: name=libvirtd state=started enabled=yes
+        register: libvirtd
+
+      - name: directory create
+        file: 
+          path: "{{ image_file_path }}/cloud-init/"
+          state: directory
+
+      - name: create directory
+        file: path={{ image_file_path }} state=directory mode=0755
+
+      - name: bridge exist check 
+        shell: "virsh net-list |grep -w {{ network_name }} "
+        register: bridge_exist_check
+        ignore_errors: yes
+
+      - name: bridge name define 
+        #shell: "N=`ip link  |awk -F: '{print $2}' |grep -iv 'nic'|grep -i virbr | sort -V |tail -n1 |cut -c 7-` ; ((N++)) ; echo $N"
+        shell: "echo -{{ network_name }}"
+        register: bridge_number
+        when: bridge_exist_check.failed 
+
+      - name: create mac address 
+        shell: "printf '52:54:%02x:%02x:%02x:%02x\n' $[RANDOM%256]  $[RANDOM%256]  $[RANDOM%256] $[RANDOM%256]"
+        args:
+            executable: /bin/bash
+        register: mac_address1
+        when: bridge_exist_check.failed
+
+      - name: virsh net create 
+        template:
+          src: templates/network.j2
+          dest: "{{ image_file_path }}/bridge.xml"
+        when: bridge_exist_check.failed 
+          
+      - name: network create 
+        shell: virsh net-define "{{ image_file_path }}/bridge.xml"
+        when: bridge_exist_check.failed
+
+      - name: network auto start
+        shell: "virsh net-autostart {{ network_name }}"
+        when: bridge_exist_check.failed 
+
+      - name: network start 
+        shell: "virsh net-start {{ network_name }}"
+        when: bridge_exist_check.failed 
+
+- name: create node network
+  user: root
+  hosts: node
+  gather_facts: no
+  vars:
+      - uuid2: "{{ 9999999999999999999999 | random | to_uuid  }}" 
+  vars_files:
+      - vars/default.yml
+      - vars/guest.yml
+  tasks:
+      - name: node net bridge exist check 
+        shell: "virsh net-list |grep -w node-net "
+        register: bridge_exist_check_node_net
+        ignore_errors: yes
+
+      - name: create node net mac address 
+        shell: "printf '52:54:%02x:%02x:%02x:%02x\n' $[RANDOM%256]  $[RANDOM%256]  $[RANDOM%256] $[RANDOM%256]"
+        args:
+            executable: /bin/bash
+        register: mac_address_node_net
+        when: bridge_exist_check_node_net.failed
+
+      - name: virsh net create node net
+        template:
+          src: templates/network_node-net.j2
+          dest: "{{ image_file_path }}/bridge.xml"
+        when: bridge_exist_check_node_net.failed 
+          
+      - name: node network create 
+        shell: virsh net-define "{{ image_file_path }}/bridge.xml"
+        when: bridge_exist_check_node_net.failed
+
+      - name: node network auto start
+        shell: "virsh net-autostart node-net"
+        when: bridge_exist_check_node_net.failed 
+
+      - name: node network start 
+        shell: "virsh net-start node-net"
+        when: bridge_exist_check_node_net.failed 
+
+- name: Check cloud image exists
+  user: root
+  hosts: node
+  gather_facts: no
+  tasks:
+      - name: Check cloud image  exists
+        stat:
+          path: "{{ image_file_path }}/{{ cloud_image }}"
+          get_checksum: no 
+          get_mime: no 
+          get_md5: no 
+        register: cloud_image_exist
+      - name: Check cloud image  exists
+        fail:  
+          msg: "{{ image_file_path }}/{{ cloud_image }} is not exists"
+        when: 
+         - cloud_image_exist.stat.exists != true
+
+- name: manage libvirt guests
+  user: root
+  hosts: vms
+  gather_facts: no
+  vars_files:
+      - vars/default.yml
+      - vars/guest.yml
+  tasks:
+      - name: get list of vms
+        local_action:
+          module: virt 
+          command: list_vms
+        register: virt_vms
+        run_once: true
+
+      - name: create user-date directory 
+        file: 
+          path: "{{ image_file_path }}/cloud-init/{{ inventory_hostname }}"
+          state: directory 
+
+      - name: create user-data
+        template: src=templates/user-data.j2 dest={{ image_file_path }}/cloud-init/{{ inventory_hostname }}/user-data
+
+      - name: create meta-data
+        template: src=templates/meta-data.j2 dest={{ image_file_path }}/cloud-init/{{ inventory_hostname }}/meta-data
+
+      - name : create cloud-init iso
+        shell: /bin/bash -c 'genisoimage -output {{ image_file_path }}/{{ inventory_hostname }}-{{ disk.cloud_init }} -volid cidata -joliet -r {{ image_file_path }}/cloud-init/{{ inventory_hostname }}/user-data  {{ image_file_path }}/cloud-init/{{ inventory_hostname }}/meta-data'
+
+      - name: Check image  exists
+        stat:
+          path: "{{ image_file_path }}/{{ inventory_hostname }}.qcow2"
+          get_checksum: no 
+          get_mime: no 
+          get_md5: no 
+        register: image_exist
+
+      - name: backing image create 
+        shell: qemu-img create -b {{ image_file_path }}/{{ cloud_image }} {{ image_file_path }}/{{ inventory_hostname }}.qcow2 -f qcow2 -F qcow2 {{ disk_size }}G
+        args:
+            executable: /bin/bash
+        when:
+          - disk_size 
+          - not image_exist.stat.exists
+
+      - name: change permission 
+        file: 
+          path: "{{ image_file_path }}/{{ inventory_hostname }}.qcow2"
+          owner: qemu
+          group: kvm
+          #owner: qemu
+          #group: qemu 
+
+- name: Create libvirt guests
+  user: root
+  hosts: vms
+  serial: 1
+  gather_facts: no
+  vars_files:
+      - vars/default.yml
+      - vars/guest.yml
+  tasks:
+      - name: create vm
+        local_action: 
+          module: command
+            virt-install --import 
+            --name {{ inventory_hostname }}
+            --ram  {{ mem }}
+            --vcpus {{ cpu }}
+            --os-type {{ os.type }}
+            --os-variant {{ os.variant }}
+            --cpu host-passthrough
+            --disk {{ image_file_path }}/{{ inventory_hostname }}.qcow2,format=qcow2,bus=virtio
+            --disk {{ image_file_path }}/{{ inventory_hostname }}-{{ disk.cloud_init }},device=cdrom
+            --network network={{ network_name }},model=virtio
+            --network network={{ network_name }},model=virtio
+            --network network={{ network_name }},model=virtio
+            --network network={{ network_name }},model=virtio
+            --network network={{ network_name }},model=virtio
+            --network network={{ network_name }},model=virtio
+            --network network=node-net,model=virtio
+            --network network=node-net,model=virtio
+            --network bridge=br0,model=virtio
+            --graphics vnc
+            --{{virt_hypervisor}}
+            --virt-type {{ virt_type }}
+            --noautoconsole
+        when: inventory_hostname not in virt_vms.list_vms
+            #--network bridge=br0,model=virtio
+
+
+- name: Verify VMs
+  user: root
+  hosts: vms
+  gather_facts: no
+  vars_files:
+      - vars/default.yml
+      - vars/guest.yml
+  tasks:
+      - name: get guest info
+        local_action:
+          module: virt 
+          command: info
+        register: virt_info
+        run_once: true
+
+      - name: make sure all vms are running
+        virt: name={{ inventory_hostname }} command=start
+        when: virt_info[inventory_hostname]['state'] != 'running'
+
+- name: add hosts playbook 
+  user: root
+  hosts: vms
+  gather_facts: no
+  vars_files:
+      - vars/default.yml
+      - vars/guest.yml
+  serial: 1
+  tasks:
+      - name: add hosts 
+        lineinfile: 
+          path: /etc/hosts
+          line: "{{ network_ipaddr }}     {{ inventory_hostname }}"
+          state: present 
+        when: 
+         - inventory_hostname not in groups['ironic']
+
+- name: ceph add storage device 
+  hosts: ceph
+  gather_facts: no
+  vars:
+      - disk_size2: 10
+  vars_files:
+      - vars/default.yml
+      - vars/guest.yml
+  tasks:
+      - name: Check image  exists
+        stat:
+          path: "{{ image_file_path }}/{{ inventory_hostname }}_1.qcow2"
+          get_checksum: no 
+          get_mime: no 
+          get_md5: no 
+        register: image_exist1
+
+      - stat:
+          path: "{{ image_file_path }}/{{ inventory_hostname }}_2.qcow2"
+          get_checksum: no 
+          get_mime: no 
+          get_md5: no 
+        register: image_exist2
+
+      - stat:
+          path: "{{ image_file_path }}/{{ inventory_hostname }}_3.qcow2"
+          get_checksum: no 
+          get_mime: no 
+          get_md5: no 
+        register: image_exist3
+
+      - name: storage disk image create 
+        shell: "qemu-img create {{ image_file_path }}/{{ inventory_hostname }}_{{ item.num }}.qcow2 -f qcow2 {{ disk_size2 }}G"
+        when:
+          - disk_size2 
+          - not image_exist1.stat.exists
+          - not image_exist2.stat.exists
+          - not image_exist3.stat.exists
+        args:
+          executable: /bin/bash 
+        with_items:
+          - { num: 1, device: vdb } 
+          - { num: 2, device: vdc }
+          - { num: 3, device: vdd }
+
+      - name: ceph storage attach 
+        shell: "virsh attach-disk {{ inventory_hostname }} {{ image_file_path }}/{{ inventory_hostname }}_{{ item.num }}.qcow2 {{ item.device }} --live  --driver qemu --subdriver qcow2 --targetbus virtio --persistent"
+        args:
+          executable: /bin/bash 
+        with_items:
+          - { num: 1, device: vdb }
+          - { num: 2, device: vdc }
+          - { num: 3, device: vdd }
+        ignore_errors: yes
+
+- name: post tasks
+  hosts: node
+  gather_facts: no
+  become: yes
+  tasks: 
+    - name: network restart 
+      shell: "pkill -1 dnsmasq"
+      args:
+        executable: /bin/bash 
+
+- name: Shutdown Ironic node
+  hosts: ironic
+  gather_facts: no
+  become: yes
+  tasks: 
+    - name: Shutdown Ironic node
+      shell: "virsh destroy {{ inventory_hostname }}"
+      args:
+        executable: /bin/bash 
+      when: 
+       - inventory_hostname in groups['ironic']
+      delegate_to: node
+
+- name: Install vbmc
+  hosts: node
+  gather_facts: yes
+  become: yes
+  tasks: 
+    - name: Install OpenStack repository 
+      package:
+        name: 
+          - centos-release-openstack-train.noarch
+        state: present 
+      when: 
+       - ansible_distribution == "CentOS"
+       - ansible_distribution_major_version == "7"
+    - name: Install vbmc 
+      package:
+        name: 
+          - python-virtualbmc
+        state: present 
+      when: 
+       - ansible_distribution == "CentOS"
+       - ansible_distribution_major_version == "7"
+
+- name: Setup vbmc
+  hosts: ironic
+  gather_facts: no
+  become: yes
+  tasks: 
+    - name: Setup vbmc
+      shell:  "vbmc add {{ inventory_hostname }} --port {{ vbmc_port }} --username admin --password admin ; vbmc start {{ inventory_hostname }}"
+      args:
+        executable: /bin/bash 
+      delegate_to: node
+
+- name: Copy ssh key
+  hosts: node
+  gather_facts: no
+  become: yes
+  tasks: 
+    - name: Copy ssh key
+      copy:
+        src: "{{ item }}"
+        dest: ~/.ssh/
+        mode: '0600'
+      loop:
+        - id_rsa_training
+        - id_rsa_training.pub
+    
+- name: Setup ssh config
+  hosts: deploy
+  gather_facts: no
+  become: yes
+  tasks: 
+    - name: Set ssh config hostname
+      debug:
+        msg: "{{ inventory_hostname.split('-') }}"
+      register: hostname_split
+    - name: Add ssh config
+      blockinfile:
+        create: true
+        path: ~/.ssh/config
+        block: |
+          Host {{ hostname_split.msg[0] }}*
+              IdentityFile ~/.ssh/id_rsa_training
+      delegate_to: node

@@ -1,0 +1,134 @@
+---
+# tasks file for openstack-resource-loadbalancer
+- name: Check training instance exists
+  shell: |
+    /home/openstack-cli-env/bin/openstack server list   --os-cloud cloud1 -f value -c Name |grep -i '^training-instance2$'
+  register: check_training_instance
+  ignore_errors: true
+
+- name: Launch test instance 
+  shell: |
+    /home/openstack-cli-env/bin/openstack server create training-instance2 \
+    --os-cloud cloud1 \
+    --image ubuntu-20.04 \
+    --security-group open-ssh \
+    --network net1 \
+    --wait \
+    --flavor m1 \
+    --key-name training-key
+  register: training_instance1_info
+  when:
+   - check_training_instance.rc != 0
+
+- name: Add security group rule http
+  openstack.cloud.security_group_rule:
+    cloud: cloud1
+    security_group: open-ssh
+    protocol: tcp
+    port_range_min: 80
+    port_range_max: 80
+    remote_ip_prefix: 0.0.0.0/0
+ 
+- name: Assign floating ip to training instance 2
+  openstack.cloud.floating_ip:
+     cloud: cloud1
+     state: present
+     reuse: yes
+     server: training-instance2
+     network: ext1
+     wait: true
+  register: floating_ip_instance2
+  when:
+   - check_training_instance.rc != 0
+
+- name: Get training instance 1 info
+  shell: "/home/openstack-cli-env/bin/openstack server show training-instance1  -f yaml -c addresses --os-cloud cloud1 "
+  register: instance_result_1
+
+- name: Get training instance 2 info
+  shell: "/home/openstack-cli-env/bin/openstack server show training-instance2  -f yaml -c addresses --os-cloud cloud1 "
+  register: instance_result_2
+
+- name: Add host training instance 1 to temporary ansible inventory 
+  add_host:
+    hostname: "{{ instance_result_1.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+    groups: training
+    ansible_ssh_user: ubuntu
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa_training
+    ansible_python_interpreter: "/usr/bin/python3"
+    ansible_become: yes
+
+- name: Add host training instance 2 to temporary ansible inventory 
+  add_host:
+    hostname: "{{ instance_result_2.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+    groups: training
+    ansible_ssh_user: ubuntu
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa_training
+    ansible_python_interpreter: "/usr/bin/python3"
+    ansible_become: yes
+
+- name: Update apt cache
+  shell: "apt update -y "
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['training'] }}"
+
+- name: Install apache package 
+  package: 
+    name: 
+     - apache2 
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['training'] }}"
+
+- name: Create test webserver 
+  template: 
+    src: index.html.j2
+    dest: /var/www/html/index.html
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['training'] }}"
+
+- name: Restart apache web server 
+  systemd: 
+    name: apache2
+    state: restarted
+    enabled: yes
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['training'] }}"
+  
+- name: Create loadbalancer
+  openstack.cloud.loadbalancer:
+    cloud: cloud1
+    name: training-lb 
+    state: present
+    vip_subnet: sub1
+    auto_public_ip: yes
+    public_network: ext1
+    listeners:
+      - name: listen_80
+        protocol: TCP
+        protocol_port: 80
+        pool:
+          name: listen_80_pool
+          protocol: TCP
+          members:
+            - name: training-instance1
+              address: "{{ instance_result_1.stdout_lines[2] | replace('-','')| replace('\ ','')}}"
+              protocol_port: 80
+              subnet: sub1
+            - name: training-instance2
+              address: "{{ instance_result_2.stdout_lines[2] | replace('-','')| replace('\ ','')}}"
+              protocol_port: 80
+              subnet: sub1
+    wait: yes
+    timeout: 1800
+  register: loadbalancer_info  
+
+- name: Loadbalancer test
+  debug: 
+    msg: "curl {{ lb_ip }}" 
+
+#- name: Create loadbalancer pool 
+#- name: Create loadbalancer listener
+#- name: Create loadbalancer member
+#- name: Create loadbalancer monitor
+#- name: Loadbalancer test
+

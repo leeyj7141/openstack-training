@@ -1,0 +1,72 @@
+---
+# tasks file for kolla-setup
+- name: Copy kolla configuration directory 
+  copy: 
+    src: kolla/
+    dest: /etc/kolla/
+
+- name: Copy ceph.conf file to kolla config directory 
+  shell: "cp -av /etc/ceph/ceph.conf /etc/kolla/config/{{ item }}"
+  loop: 
+   - /manila/
+   - /nova/
+   - /cinder/
+   - /cinder/cinder-backup/
+   - /cinder/cinder-volume/
+   - /glance/
+
+- name: Copy keyring file to kolla config directory 
+  shell: "cp -av /etc/ceph/ceph.client.openstack.keyring /etc/kolla/config/{{ item }}"
+  loop: 
+   - /nova/
+   - /cinder/cinder-backup/
+   - /cinder/cinder-volume/
+   - /glance/
+
+- name: Create neutron config node directory 
+  file: 
+    path: "/etc/kolla/config/neutron/{{ item }}"
+    state: directory 
+  loop: "{{ groups['con'] }} + {{ groups['com'] }}"
+
+- name: Copy neutron config to controller node 
+  copy: 
+    src: con_openvswitch_agent.ini
+    dest: "/etc/kolla/config/neutron/{{ item }}/openvswitch_agent.ini"
+  loop: "{{ groups['con'] }}"
+
+- name: Copy neutron config to compute node 
+  copy: 
+    src: com_openvswitch_agent.ini
+    dest: "/etc/kolla/config/neutron/{{ item }}/openvswitch_agent.ini"
+  loop: "{{ groups['com'] }}"
+
+- name: Copy neutron l3 agent config to compute node 
+  copy: 
+    src: l3_agent.ini
+    dest: "/etc/kolla/config/neutron/{{ item }}/l3_agent.ini"
+  loop: "{{ groups['com'] }}"
+
+- name: Copy neutron dhcp agent config to compute node 
+  copy: 
+    src: dhcp_agent.ini
+    dest: "/etc/kolla/config/neutron/{{ item }}/dhcp_agent.ini"
+  loop: "{{ groups['com'] }}"
+
+- name: Copy manila keyring file to kolla config directory 
+  shell: "cp -av /etc/ceph/ceph.client.manila.keyring /etc/kolla/config/manila"
+
+- name: Create kolla-ansible inventory
+  template: 
+    src: multinode.j2
+    dest: /etc/kolla/multinode
+
+- name: Install kolla-ansible
+  pip:
+    virtualenv: /home/kolla-env/
+    name: 
+     - kolla-ansible==13.1.0
+     - ansible==4.10.0
+     - ansible-core==2.11.10
+
+

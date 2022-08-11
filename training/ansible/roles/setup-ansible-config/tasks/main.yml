@@ -1,0 +1,10 @@
+---
+# tasks file for setup-ansible-config
+- name: Create ansible config directory
+  file: 
+    path: /etc/ansible/
+    state: directory
+- name: Copy ansible.cfg file 
+  copy: 
+    src: ansible.cfg 
+    dest: /etc/ansible/ansible.cfg

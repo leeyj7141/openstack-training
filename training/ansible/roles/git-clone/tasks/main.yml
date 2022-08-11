@@ -1,0 +1,8 @@
+---
+# tasks file for git-clone
+- name: ceph-ansible download
+  ansible.builtin.git:
+    repo: 'https://youngju-lee@bitbucket.org/youngju-lee/yjlee-ceph-ansible.git'
+    dest: /root/git/kms-ceph-ansible
+    version: master
+  ignore_errors: true

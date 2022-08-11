@@ -1,0 +1,4 @@
+[client.openstack]
+	key = AQC0faliAAAAABAAtW4nzwtkhqGMatVPKj+luA==
+	caps mon = "profile rbd"
+	caps osd = "profile rbd pool=images, profile rbd pool=vms, profile rbd pool=volumes, profile rbd pool=backups"

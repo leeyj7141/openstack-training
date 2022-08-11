@@ -1,0 +1,26 @@
+---
+# tasks file for nfs-server-setup
+- name: Install nfs server
+  package: 
+    name: 
+      - nfs-utils
+    state: present
+
+- name: Setup nfs server    
+  lineinfile: 
+    line: "/edu/images *(rw,no_root_squash)"
+    path: /etc/exports
+    state: present
+
+- name: Restart nfs server 
+  systemd: 
+    name: nfs-server
+    enabled: yes
+    state: restarted
+
+- name: NFS client installation at deploy sever 
+  package: 
+    name: 
+      - nfs-common
+    state: present
+  delegate_to: "{{ groups['deploy'][0] }}"

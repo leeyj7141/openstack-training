@@ -1,0 +1,8 @@
+network:
+  version: 2
+  renderer: networkd
+  bridges:
+    br_pub:
+      routes:
+       - to: "10.1.0.0/24"
+         via: "192.168.195.180"

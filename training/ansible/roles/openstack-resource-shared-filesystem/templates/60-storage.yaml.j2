@@ -1,0 +1,6 @@
+network:
+  version: 2
+  ethernets:
+     {{ instance_lastnic.stdout }}: 
+       dhcp4: true
+       dhcp6: false

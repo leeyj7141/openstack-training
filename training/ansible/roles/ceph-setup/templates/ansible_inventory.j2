@@ -1,0 +1,20 @@
+[mons]
+{% for host in groups['mons'] %}
+{{ host }}
+{% endfor %}
+[osds]
+{% for host in groups['osds'] %}
+{{ host }}
+{% endfor %}
+[mgrs]
+{% for host in groups['mgrs'] %}
+{{ host }}
+{% endfor %}
+[mdss]
+{% for host in groups['mdss'] %}
+{{ host }}
+{% endfor %}
+[grafana-server]
+{% for host in groups['grafana-server'] %}
+{{ host }}
+{% endfor %}

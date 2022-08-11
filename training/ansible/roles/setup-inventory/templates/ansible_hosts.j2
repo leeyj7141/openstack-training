@@ -1,0 +1,51 @@
+[node]
+{{ hostvars[inventory_hostname]['ansible_br0']['ipv4']['address'] }}
+
+[deploy]
+{% for host in groups['deploy'] %}
+{{ host }}
+{% endfor %}
+
+[con]
+{% for host in groups['con'] %}
+{{ host }}
+{% endfor %}
+
+[com]
+{% for host in groups['com'] %}
+{{ host }}
+{% endfor %}
+
+[ceph:children]
+mons
+osds
+mgrs
+mdss
+
+[mons]
+{% for host in groups['ceph'] %}
+{{ host }}
+{% endfor %}
+
+[osds]
+{% for host in groups['ceph'] %}
+{{ host }}
+{% endfor %}
+
+[mgrs]
+{% for host in groups['ceph'] %}
+{{ host }}
+{% endfor %}
+
+[mdss]
+{% for host in groups['ceph'] %}
+{{ host }}
+{% endfor %}
+
+[grafana-server]
+{{ groups['ceph'][0] }}
+
+[all:vars]
+public_network_allocated={{ public_network_allocated }}
+public_network={{ public_network }} 
+public_network_gateway={{ public_network_gateway }}

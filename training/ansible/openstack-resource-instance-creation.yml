@@ -1,0 +1,8 @@
+---
+- name: Openstack resource instance creation
+  hosts: deploy
+  vars:
+   - ansible_python_interpreter: /home/openstack-cli-env/bin/python
+  tasks:
+    - import_role: 
+        name: openstack-resource-instance-creation

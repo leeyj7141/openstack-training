@@ -1,0 +1,9 @@
+---
+# tasks file for add-controller-route
+- name: copy octavia network route file
+  copy:
+    src: "{{ playbook_dir }}/../kolla-ansible-config/{{ groups['deploy'][0] }}/etc/netplan/62-octavia-net-route.yaml"
+    dest: /etc/netplan/62-octavia-net-route.yaml
+
+- name: Netplan apply
+  shell: "netplan apply"

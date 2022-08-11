@@ -1,0 +1,116 @@
+---
+# tasks file for octavia-setup
+- name: Create openstack environemnt directory 
+  file: 
+    path: /etc/openstack/
+    state: directory
+
+- name: Bring kolla-ansible globals.yml
+  fetch: 
+    src: /etc/kolla/globals.yml 
+    dest: "{{ playbook_dir }}/../kolla-ansible-config"
+
+- name: Bring kolla-ansible passwords.yml
+  fetch: 
+    src: /etc/kolla/passwords.yml
+    dest: "{{ playbook_dir }}/../kolla-ansible-config"
+
+- name: include globals.yml
+  include_vars:  "{{ playbook_dir }}/../kolla-ansible-config/{{ inventory_hostname }}/etc/kolla/globals.yml"
+
+- name: include passwords.yml
+  include_vars:  "{{ playbook_dir }}/../kolla-ansible-config/{{ inventory_hostname }}/etc/kolla/passwords.yml"
+
+- name: Create openstack environemnt variable clouds.yml 
+  template: 
+    src: clouds.yaml.j2
+    dest: /etc/openstack/clouds.yaml
+
+- name: Set external network split
+  debug: 
+    msg: "{{ public_network_allocated.split('.') }}"
+  register: public_network_allocated_split
+
+- name: Create external network 
+  os_network: 
+    cloud: cloud1
+    state: present
+    name: ext1
+    external: true
+    provider_network_type: flat
+    provider_physical_network: physnet1
+    mtu: 1500
+
+- name: Create external network subnet
+  os_subnet: 
+    cloud: cloud1
+    name: extsub1 
+    network_name: ext1
+    cidr: "{{ public_network }}"
+    enable_dhcp: yes 
+    gateway_ip: "{{ public_network_gateway }}"
+    allocation_pool_start: "{{ public_network_allocated_split.msg[0] }}.{{ public_network_allocated_split.msg[1] }}.{{ public_network_allocated_split.msg[2] }}.150"
+    allocation_pool_end: "{{ public_network_allocated_split.msg[0] }}.{{ public_network_allocated_split.msg[1] }}.{{ public_network_allocated_split.msg[2] }}.200"
+
+- name: Create octavia router 
+  os_router: 
+    cloud: cloud1
+    state: present
+    name: octavia-router1
+    network: ext1
+    external_fixed_ips:
+      - subnet: extsub1
+    interfaces:
+      - net: lb-mgmt-net
+        subnet: lb-mgmt-subnet
+  register: router_info
+
+- name: Add route in controller nodes 
+  template: 
+    src: 62-octavia-net-route.yaml.j2
+    dest: /etc/netplan/62-octavia-net-route.yaml
+
+- name: Assign admin role to service project
+  openstack.cloud.role_assignment:
+    cloud: cloud1
+    user: admin
+    role: admin
+    project: service
+
+- name: Create mount point 
+  file: 
+    path: /mnt/images
+    state: directory
+
+- name: Mount images directory  
+  mount: 
+    src: "{{ groups['node'][0]}}:/edu/images/"
+    path: "/mnt/images/"
+    fstype: nfs4
+    state: mounted
+    opts: "rw,sync"
+
+- name: Check amphora image exists 
+  shell: |
+    /home/openstack-cli-env/bin/openstack image list   --os-cloud cloud1-octavia -f value -c Name |grep -i '^amphora-image$'
+  register: check_amphora_image
+  ignore_errors: true
+
+- name: Create octavia amphora image 
+  shell: |
+    /home/openstack-cli-env/bin/openstack image create  --file /mnt/images/amphora-haproxy-ubuntu-18.04.qcow2 --disk-format qcow2 --public amphora-image --tag amphora --os-cloud cloud1-octavia
+  when:  
+   - check_amphora_image.rc != 0
+
+- name: Bring octavia network route configuration file 
+  fetch: 
+    src: /etc/netplan/62-octavia-net-route.yaml
+    dest: "{{ playbook_dir }}/../kolla-ansible-config"
+
+- name: Umount images directory  
+  mount: 
+    src: "{{ groups['node'][0]}}:/edu/images/"
+    path: "/mnt/images/"
+    fstype: nfs4
+    state: unmounted
+    opts: "rw,sync"

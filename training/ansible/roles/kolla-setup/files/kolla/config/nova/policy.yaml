@@ -1,0 +1,1 @@
+"compute:servers:resize:cross_cell": "rule:admin_api and not role:viewer"

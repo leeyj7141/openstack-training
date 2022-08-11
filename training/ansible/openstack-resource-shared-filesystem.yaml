@@ -1,0 +1,6 @@
+---
+- name: Openstack resource shared filesystem create
+  hosts: deploy
+  tasks:
+    - import_role: 
+        name: openstack-resource-shared-filesystem

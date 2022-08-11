@@ -1,0 +1,8 @@
+---
+- name: Install Ceph Ansible
+  hosts: deploy
+  tasks:
+    - import_role: 
+        name: git-clone
+    - import_role: 
+        name: ceph-setup

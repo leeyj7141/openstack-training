@@ -1,0 +1,6 @@
+---
+- name: Install Ceph Ansible
+  hosts: deploy
+  tasks:
+    - import_role: 
+        name: kolla-setup

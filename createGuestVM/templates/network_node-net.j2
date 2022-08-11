@@ -1,0 +1,13 @@
+<network>
+  <name>node-net</name>
+  <uuid>{{ uuid2 }}</uuid>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='virbr-node-net' stp='on' delay='0'/>
+  <mac address='{{ mac_address_node_net.stdout }}'/>
+  <ip address='10.100.0.1' netmask='255.255.255.0'>
+  </ip>
+</network>

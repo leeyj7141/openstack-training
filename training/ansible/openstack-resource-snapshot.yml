@@ -1,0 +1,7 @@
+---
+- name: Openstack resource create snapshot
+  hosts: deploy
+  gather_facts: false
+  tasks:
+    - import_role: 
+        name: openstack-resource-snapshot

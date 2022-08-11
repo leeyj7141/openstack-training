@@ -1,0 +1,123 @@
+---
+# tasks file for openstack-resource-snapshot
+- name: Create volume
+  openstack.cloud.volume:
+    state: present
+    cloud: cloud1
+    size: 2
+    display_name: training-instance1-vol1
+
+- name: Add volume
+  openstack.cloud.server_volume:
+    cloud: cloud1
+    state: present
+    server: training-instance1
+    volume: training-instance1-vol1
+
+- name: Get instance info 
+  shell: "/home/openstack-cli-env/bin/openstack server show training-instance1  -f yaml -c addresses --os-cloud cloud1 "
+  register: instance_result
+
+- name: Add inventory host 
+  add_host: 
+    hostname: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+    ansible_ssh_user: ubuntu
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa_training
+    ansible_python_interpreter: "/usr/bin/python3"
+    ansible_become: yes
+
+- name: training instance - partitioning 
+  parted:
+    device: /dev/vdb
+    number: 1
+    flags: [ lvm ]
+    state: present
+  delegate_to: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+
+- name: training instance - filesystem format 
+  filesystem:
+    fstype: ext4
+    dev: /dev/vdb1
+  delegate_to: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+
+- name: training instance - filesystem mount 
+  mount:
+    fstype: ext4
+    src: /dev/vdb1
+    path: /mnt
+    state: mounted
+  delegate_to: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+
+- name: training instance - create testfile
+  lineinfile: 
+    create: true
+    state: present
+    path: "/mnt/testfile"
+    line: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}} Temporary file"
+  delegate_to: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+
+- name: training instance - read testfile
+  ansible.builtin.slurp:
+    src: "/mnt/testfile"
+  register: slurpfile
+  delegate_to: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+
+- name: training instance - print testfile
+  ansible.builtin.debug:
+    msg: "{{ slurpfile['content'] | b64decode }}"
+
+- name: training instance - filesystem unmount
+  mount:
+    fstype: ext4
+    src: /dev/vdb1
+    path: /mnt
+    state: unmounted
+  delegate_to: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+
+- name: Detach volume 
+  openstack.cloud.server_volume:
+    cloud: cloud1
+    state: absent
+    server: training-instance1
+    volume: training-instance1-vol1
+
+- name: Create snapshot
+  openstack.cloud.volume_snapshot:
+    cloud: cloud1
+    state: present
+    volume: training-instance1-vol1
+    display_name: training-instance1-vol1-snap1
+  register: snap1
+
+- name: Create volume from snapshot
+  openstack.cloud.volume:
+    state: present
+    cloud: cloud1
+    size: 2
+    snapshot_id: "{{ snap1.snapshot.id }}"
+    display_name: training-instance1-vol2-from-snap1
+
+- name: Add volume
+  openstack.cloud.server_volume:
+    cloud: cloud1
+    state: present
+    server: training-instance1
+    volume: training-instance1-vol2-from-snap1
+
+- name: training instance - snapshot volume filesystem mount 
+  mount:
+    fstype: ext4
+    src: /dev/vdb1
+    path: /mnt
+    state: mounted
+  delegate_to: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+
+- name: training instance - read testfile from snapshot volume
+  ansible.builtin.slurp:
+    src: "/mnt/testfile"
+  register: slurpfile2
+  delegate_to: "{{ instance_result.stdout_lines[3] | replace('-','')| replace('\ ','')}}"
+
+- name: training instance - print testfile from snapshot volume
+  ansible.builtin.debug:
+    msg: "{{ slurpfile2['content'] | b64decode }}"

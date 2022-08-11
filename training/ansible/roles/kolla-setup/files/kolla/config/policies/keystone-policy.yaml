@@ -1,0 +1,8 @@
+"identity:create_application_credential": "user_id:%(user_id)s and not role:viewer"
+"identity:delete_application_credential": "(role:admin and system_scope:all) or rule:owner and not role:viewer"
+"identity:delete_application_credentials": "rule:identity:delete_application_credential and not role:viewer"
+
+"identity:ec2_create_credential": "(role:admin and system_scope:all) or rule:owner and not role:viewer"
+"identity:ec2_create_credentials": "rule:identity:ec2_create_credential"
+"identity:ec2_delete_credential": "(role:admin and system_scope:all) or user_id:%(target.credential.user_id)s and not role:viewer"
+"identity:ec2_delete_credentials": "rule:identity:ec2_delete_credential"

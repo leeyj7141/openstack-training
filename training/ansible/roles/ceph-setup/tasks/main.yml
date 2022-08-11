@@ -1,0 +1,11 @@
+---
+# tasks file for ceph-setup
+- name: Install python packages 
+  pip:
+    virtualenv: /home/ceph-env/
+    requirements: /root/git/kms-ceph-ansible/requirements.txt
+
+- name: Setup ansible inventory 
+  template: 
+    src: ansible_inventory.j2
+    dest: /root/git/kms-ceph-ansible/ansible-hosts

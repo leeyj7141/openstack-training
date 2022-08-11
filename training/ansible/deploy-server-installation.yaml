@@ -1,0 +1,27 @@
+---
+- name: deploy host installation
+  hosts: deploy
+  tasks:
+    - import_role: 
+        name: docker-installation
+    - import_role: 
+        name: setup-virtualenv
+    - import_role: 
+        name: setup-ansible-config
+    - import_role: 
+        name: openstacksdk-installation
+
+- name: NFS setup
+  hosts: localhost 
+  tasks: 
+    - import_role: 
+        name: nfs-server-setup
+      when:
+       - ansible_distribution == "CentOS"
+       - ansible_distribution_major_version == "7"
+   
+- name: ansible openstack cloud module import 
+  hosts: localhost 
+  tasks: 
+    - name: ansible openstack cloud module import 
+      shell: "ansible-galaxy collection install openstack.cloud" 

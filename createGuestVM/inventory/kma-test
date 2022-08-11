@@ -1,0 +1,59 @@
+[node]
+127.0.0.1  
+#192.168.0.105  ansible_ssh_user=root ansible_ssh_pass=
+
+[deploy]
+kms-xena-deploy2 cpu=4 mem=8000  public_ip_suffix="4"  network_ipaddr="10.22.0.4"  
+                                                                  
+[openstack:children]
+con
+com
+[con]
+#kms-xena-con1 cpu=4 mem=16000  public_ip_suffix="11" network_ipaddr="10.22.0.11" 
+#kms-xena-con2 cpu=4 mem=16000  public_ip_suffix="12" network_ipaddr="10.22.0.12" 
+#kms-xena-con3 cpu=4 mem=16000  public_ip_suffix="13" network_ipaddr="10.22.0.13" 
+#kms-xena-cell1-con cpu=6 mem=16000 public_ip_suffix="14" network_ipaddr="10.22.0.14" 
+#kms-xena-cell2-con cpu=6 mem=16000 public_ip_suffix="15" network_ipaddr="10.22.0.15" 
+
+[com]
+#kms-xena-com1 cpu=4 mem=8000 public_ip_suffix="21" network_ipaddr="10.22.0.21"  
+#kms-xena-com2 cpu=4 mem=8000 public_ip_suffix="22" network_ipaddr="10.22.0.22"  
+#kms-xena-cell1-com cpu=2 mem=8000 public_ip_suffix="24" network_ipaddr="10.22.0.24" 
+#kms-xena-cell1-com2 cpu=2 mem=6000 public_ip_suffix="29" network_ipaddr="10.22.0.29" 
+#kms-xena-cell2-com cpu=2 mem=8000 public_ip_suffix="25" network_ipaddr="10.22.0.25" 
+#kms-xena-cell2-com2 cpu=2 mem=6000 public_ip_suffix="30" network_ipaddr="10.22.0.30" 
+
+[ironic]
+#kms-xena-ironic1 cpu=2 mem=4000  network_ipaddr="10.22.0.41"  vbmc_port="4001"
+#kms-xena-ironic2 cpu=2 mem=4000  network_ipaddr="10.22.0.42"  vbmc_port="4002"
+
+[ceph]
+#kms-xena-ceph1 cpu=4 mem=12000  network_ipaddr="10.22.0.31"  public_ip_suffix="31"
+#kms-xena-ceph2 cpu=4 mem=12000  network_ipaddr="10.22.0.32"  public_ip_suffix="32"
+#kms-xena-ceph3 cpu=4 mem=12000  network_ipaddr="10.22.0.33"  public_ip_suffix="33"
+
+[vms:children]
+ceph
+openstack
+deploy
+ironic
+
+[all:vars]
+ansible_host="127.0.0.1"
+network_name="kms"
+dns1="10.22.0.1"
+network_gateway="10.22.0.1"
+public_network_allocated=192.168.195.0/24
+public_network=192.168.0.0/16
+public_network_gateway=192.168.0.1
+#cloud_image="bionic-server-cloudimg-amd64.img"
+cloud_image="focal-server-cloudimg-amd64.img"
+image_file_path='/edu/vms'
+#image_file_path='/data/vms'
+disk_size="40"
+#ansible_become=true
+base_os=ubuntu
+#base_os=centos
+#ansible_connection=ssh
+#ansible_ssh_user=root
+#ansible_ssh_pass=

@@ -1,0 +1,169 @@
+---
+# tasks file for openstack-resource-instance-creation
+- name: Create vxlan network 
+  openstack.cloud.network:
+    cloud: cloud1
+    state: present
+    name: net1
+    external: false
+
+- name: Create subnet
+  openstack.cloud.subnet:
+    state: present
+    network_name: net1
+    name: sub1
+    cidr: 2.2.2.0/24
+
+- name: Create router
+  openstack.cloud.router:
+    cloud: cloud1
+    state: present
+    name: router1
+    network: ext1
+    enable_snat: true
+    interfaces:
+      - net: net1
+        subnet: sub1
+
+- name: Create keypair
+  openstack.cloud.keypair:
+      cloud: cloud1
+      state: present
+      name: training-key
+      public_key_file: /etc/ssh/ssh_host_rsa_key.pub
+
+- name: Create flavor s1
+  openstack.cloud.compute_flavor:
+    cloud: cloud1
+    state: present
+    name: s1
+    ram: 512
+    vcpus: 1
+    disk: 5
+    ephemeral: 0
+
+- name: Create flavor m1
+  openstack.cloud.compute_flavor:
+    cloud: cloud1
+    state: present
+    name: m1
+    ram: 2048
+    vcpus: 2
+    disk: 10
+    ephemeral: 0
+
+- name: Check ubuntu image exists
+  shell: |
+    /home/openstack-cli-env/bin/openstack image list   --os-cloud cloud1 -f value -c Name |grep -i '^ubuntu-20.04$'
+  register: check_ubuntu_image
+  ignore_errors: true
+
+- name: Create mount point
+  file:
+    path: /mnt/images
+    state: directory
+  when:
+   - check_ubuntu_image.rc != 0
+
+- name: Mount images directory
+  mount:
+    src: "{{ groups['node'][0]}}:/edu/images/"
+    path: "/mnt/images/"
+    fstype: nfs4
+    state: mounted
+    opts: "rw,sync"
+  when:
+   - check_ubuntu_image.rc != 0
+
+- name: Create ubuntu image
+  shell: |
+    /home/openstack-cli-env/bin/openstack  image create --file /mnt/images/focal-server-cloudimg-amd64.img --disk-format qcow2 --public ubuntu-20.04 --tag training --os-cloud cloud1
+  when:
+   - check_ubuntu_image.rc != 0
+
+- name: Umount images directory  
+  mount: 
+    src: "{{ groups['node'][0]}}:/edu/images/"
+    path: "/mnt/images/"
+    fstype: nfs4
+    state: unmounted
+    opts: "rw,sync"
+
+- name: Create security group 
+  openstack.cloud.security_group:
+    cloud: cloud1
+    state: present
+    name: open-ssh
+
+- name: Create security group rule open icmp
+  openstack.cloud.security_group_rule:
+    cloud: cloud1
+    security_group: open-ssh
+    protocol: icmp
+    port_range_min: -1
+    port_range_max: -1
+    remote_ip_prefix: 0.0.0.0/0
+
+- name: Create security group rule open ssh
+  openstack.cloud.security_group_rule:
+    cloud: cloud1
+    security_group: open-ssh
+    protocol: tcp
+    port_range_min: 22 
+    port_range_max: 22 
+    remote_ip_prefix: 0.0.0.0/0
+
+
+- name: Check training instance exists
+  shell: |
+    /home/openstack-cli-env/bin/openstack server list   --os-cloud cloud1 -f value -c Name |grep -i '^training-instance1$'
+  register: check_training_instance
+  ignore_errors: true
+
+- name: Launch an instance
+  shell: |
+    /home/openstack-cli-env/bin/openstack server create training-instance1 \
+    --os-cloud cloud1 \
+    --image ubuntu-20.04 \
+    --security-group open-ssh \
+    --network net1 \
+    --wait \
+    --flavor m1 \
+    --key-name training-key 
+  register: training_instance1_info
+  when:
+   - check_training_instance.rc != 0
+
+#- name: Launch an instance
+#  #openstack.cloud.server:
+#  os_server:
+#    name: training-instance1
+#    state: present
+#    key_name: training-key
+#    #image: "ubuntu"
+#    flavor: "s1"
+#    network: "net1"
+#    boot_volume: "{{ training_volume_info.id }}"
+#    #boot_from_volume: true
+#    #volume_size: 5
+#    userdata: |
+#      {%- raw -%}#!/bin/bash
+#      echo "training instance" > ~/cloud-init-test.txt
+#      echo "  "
+#      {% endraw %}
+#  register: training_instance1_info
+
+- name: assign floating ip to training instance 
+  openstack.cloud.floating_ip:
+     cloud: cloud1
+     state: present
+     reuse: yes
+     server: training-instance1
+     network: ext1
+     wait: true
+  register: floating_ip
+
+- name: SSH to training instance 
+  debug:
+    msg: "ssh -i ~/.ssh/id_rsa_training -l ubuntu {{ floating_ip.floating_ip.floating_ip_address }}"
+  

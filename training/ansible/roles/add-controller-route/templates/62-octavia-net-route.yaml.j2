@@ -1,0 +1,8 @@
+network:
+  version: 2
+  renderer: networkd
+  bridges:
+    br_pub:
+      routes:
+       - to: "{{ octavia_amp_network_cidr }}"
+         via: "{{ router_info.router.external_gateway_info.external_fixed_ips[0].ip_address }}"
